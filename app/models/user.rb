@@ -67,6 +67,21 @@ class User < ActiveRecord::Base
     nil
   end
 
+  def self.find_or_create_by_provider_email(provider, email, name, provider_id)
+    existing = User.where(email: email).last
+    return existing if existing
+
+    display_name = name || email
+
+    User.create(
+      login: display_name, # TODO: Consider auto-changing `login` to avoid duplication
+      name: display_name,
+      email: email,
+      provider: providers[provider],
+      provider_id: provider_id.to_s
+    )
+  end
+
   def admin?
     self.role == ADMIN
   end

@@ -21,12 +21,19 @@ class SessionsController < ApplicationController
   end
 
   def facebook
-    omniauth_response = request.env['omniauth.auth']
-    facebook_email = omniauth_response['info']['email'] if omniauth_response.is_a?(Hash)
+    response = request.env['omniauth.auth']
 
-    user = User.where(email: facebook_email).last
+    if response.is_a?(Hash)
+      email = response.info.email
+      user = User.find_or_create_by_provider_email(:facebook,
+                                                   email,
+                                                   response.info.name,
+                                                   response.uid)
 
-    handle_login(user, facebook_email)
+      handle_login(user, email)
+    else
+      handle_provider_failure(:facebook)
+    end
   end
 
   def failure
