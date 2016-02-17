@@ -1,6 +1,46 @@
 describe SessionsController do
-  let!(:first) { create(:user, email: 'em@il.com') }
-  let!(:second) { create(:user, email: 'em@il.com') }
+  let!(:user) { create(:user, email: 'em@il.com') }
+  let!(:second_user) { create(:user, email: 'em@il.com') }
+  let(:correct_pass) { 'secret' }
+
+  describe '#create' do
+    it 'logs user with correct credentials' do
+      get :create, { login: user.login, password: correct_pass }
+
+      expect_logged_user_to_be(user)
+    end
+
+    it 'logs nobody with wrong credentials' do
+      get :create, { login: user.login, password: 'incorrect' }
+
+      expect_no_user_logged
+    end
+
+    it 'shows appropriate error message when using wrong credentials' do
+      get :create, { login: user.login, password: 'incorrect' }
+
+      expect_error_shown("Неуспешно влизане с потребителско име '#{user.login}'")
+    end
+
+    it 'prompts user to log with facebook when trying to '\
+       'log with email of existing facebook account only' do
+
+      [user, second_user].each(&:destroy)
+      create_facebook_user(user.email)
+
+      get :create, { login: user.email, password: 'incorrect' }
+      expect_error_shown("Потребител с имейл '#{user.email}' е регистриран през Facebook")
+    end
+
+    it 'shows error message related standard account when '\
+       'receiving wrong password for email duplicated by standart & FB accounts' do
+
+      create_facebook_user(user.email)
+
+      get :create, { login: user.email, password: 'incorrect' }
+      expect_error_shown("Неуспешно влизане с потребителско име '#{user.email}'")
+    end
+  end
 
   describe '#facebook' do
     let(:successful_response_existing) do
@@ -16,19 +56,23 @@ describe SessionsController do
     context 'when user with this email exists' do
       before(:each) do
         mock_omniauth(:facebook, successful_response_existing)
-        get :facebook
       end
 
       it 'finds a user by Facebook email' do
+        get :facebook
         expect(session[:user_id]).to be
       end
 
       it 'logs the last user with the given email' do
-        expect(session[:user_id]).to eq(second.id)
+        get :facebook
+        expect_logged_user_to_be(second_user)
       end
 
-      it "redirects to root" do
-        expect(response).to redirect_to root_path
+      it 'logs the Facebook account if there are both Facebook and standard ones' do
+        facebook_user = create_facebook_user('em@il.com')
+        get :facebook
+
+        expect_logged_user_to_be(facebook_user)
       end
     end
 
@@ -39,7 +83,7 @@ describe SessionsController do
       end
 
       it 'creates a new user' do
-        expect(User.last.id).to eq(second.id + 1)
+        expect(User.last.id).to eq(second_user.id + 1)
       end
 
       it 'creates a new user with facebook provider' do
@@ -71,11 +115,32 @@ describe SessionsController do
   #   end
 
   #   it 'logs no user when omniauth failure happens' do
-  #     expect(session[:user_id]).to be_empty
+  #     expect_no_user_logged
   #   end
 
   #     it "redirects to root" do
   #       expect(response).to redirect_to root_path
   #     end
   # end
+
+  private
+
+  def expect_no_user_logged
+    expect_logged_user_to_be(nil)
+  end
+
+  def expect_logged_user_to_be(user)
+    expect(session[:user_id]).to eq(user.try(:id))
+  end
+
+  def expect_error_shown(error_message)
+    expect(flash.now[:error]).to eq(error_message)
+  end
+
+  def create_facebook_user(email = nil)
+    options = { provider: User.providers[:facebook] }
+    options.merge!(email: email) if email
+
+    create(:user, options)
+  end
 end

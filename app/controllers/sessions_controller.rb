@@ -10,6 +10,7 @@ class SessionsController < ApplicationController
 
   def create
     user = User.authenticate(params[:login], params[:password])
+
     handle_login(user, params[:login])
   end
 
@@ -70,7 +71,7 @@ class SessionsController < ApplicationController
       user_from_external = User.from_external_provider_only(login)
 
       flash.now[:error] = user_from_external ?
-        "Потребител с имейл #{login} е регистриран през "\
+        "Потребител с имейл '#{login}' е регистриран през "\
         "#{user_from_external.provider.capitalize}" :
 
         "Неуспешно влизане с потребителско име '#{login}'"

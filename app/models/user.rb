@@ -58,7 +58,9 @@ class User < ActiveRecord::Base
   # This will also let us return a human error message.
   #
   def self.authenticate(login, password)
-    user = find_by_login(login.downcase) || User.maycamp.find_by_email(login.downcase) # need to get the salt
+    user = find_by_login(login.downcase) ||
+           User.maycamp.find_by_email(login.downcase) # need to get the salt
+
     if user and user.password == encrypt_password(password)
       return user
     end
@@ -75,7 +77,7 @@ class User < ActiveRecord::Base
 
     display_name = name || email
 
-    User.create(
+    create(
       login: display_name, # TODO: Consider auto-changing `login` to avoid duplication
       name: display_name,
       email: email,
