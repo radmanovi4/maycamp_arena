@@ -97,6 +97,10 @@ class User < ActiveRecord::Base
     only_external_accounts ? users.first : nil
   end
 
+  def self.maycamp
+    User.where(provider: [nil, providers[:maycamp]])
+  end
+
   def admin?
     self.role == ADMIN
   end
