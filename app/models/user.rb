@@ -6,6 +6,13 @@ class User < ActiveRecord::Base
 
   devise :omniauthable, :omniauth_providers => [:facebook]
 
+  SUPPORTED_PROVIDERS = [
+    :maycamp,
+    :facebook
+  ].freeze
+
+  enum provider: SUPPORTED_PROVIDERS
+
   validates_presence_of     :login
   validates_length_of       :login,    :within => 3..40
   validates_uniqueness_of   :login
@@ -16,10 +23,12 @@ class User < ActiveRecord::Base
   validates_presence_of     :email
   validates_length_of       :email,    :within => 6..100 #r@a.wk
 
-  validates_presence_of     :unencrypted_password, :on => :create
-  validates_confirmation_of :unencrypted_password
+  with_options unless: :facebook? do
+    validates_presence_of     :unencrypted_password, :on => :create
+    validates_confirmation_of :unencrypted_password
 
-  validates_presence_of :city
+    validates_presence_of :city
+  end
 
   attr_accessor :unencrypted_password
 
