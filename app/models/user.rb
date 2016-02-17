@@ -58,8 +58,7 @@ class User < ActiveRecord::Base
   # This will also let us return a human error message.
   #
   def self.authenticate(login, password)
-    user = find_by_login(login.downcase) || find_by_email(login.downcase) # need to get the salt
-
+    user = find_by_login(login.downcase) || User.maycamp.find_by_email(login.downcase) # need to get the salt
     if user and user.password == encrypt_password(password)
       return user
     end
@@ -68,7 +67,10 @@ class User < ActiveRecord::Base
   end
 
   def self.find_or_create_by_provider_email(provider, email, name, provider_id)
-    existing = User.where(email: email).last
+    with_email = User.where(email: email)
+    existing = with_email.find_by(provider: providers[provider]) ||
+               with_email.last
+
     return existing if existing
 
     display_name = name || email
@@ -80,6 +82,17 @@ class User < ActiveRecord::Base
       provider: providers[provider],
       provider_id: provider_id.to_s
     )
+  end
+
+  def self.from_external_provider_only(email)
+    externals = (SUPPORTED_PROVIDERS - [:maycamp]).map { |p| providers[p] }
+    users = User.where(email: email)
+
+    only_external_accounts = users.pluck(:provider).all? do |provider|
+      externals.include?(provider)
+    end
+
+    only_external_accounts ? users.first : nil
   end
 
   def admin?

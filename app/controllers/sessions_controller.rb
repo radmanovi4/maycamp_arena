@@ -10,7 +10,6 @@ class SessionsController < ApplicationController
 
   def create
     user = User.authenticate(params[:login], params[:password])
-
     handle_login(user, params[:login])
   end
 
@@ -67,12 +66,19 @@ class SessionsController < ApplicationController
   end
 
   def handle_failure(login = nil, provider = nil)
-    flash.now[:error] = login ? "Неуспешно влизане с потребителско име '#{login}'"
-                              : "Неуспешно влизане с #{provider}"
-
     if login
+      user_from_external = User.from_external_provider_only(login)
+
+      flash.now[:error] = user_from_external ?
+        "Потребител с имейл #{login} е регистриран през "\
+        "#{user_from_external.provider.capitalize}" :
+
+        "Неуспешно влизане с потребителско име '#{login}'"
+
       logger.warn "Failed login for '#{login}' from #{request.remote_ip} at #{Time.now.utc}"
       @login = login
+    else
+      flash.now[:error] = "Неуспешно влизане с #{provider}"
     end
 
     @remember_me = params[:remember_me]
