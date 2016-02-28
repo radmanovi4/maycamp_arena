@@ -68,7 +68,7 @@ class User < ActiveRecord::Base
     nil
   end
 
-  def self.find_or_create_by_provider_email(provider, email, additional)
+  def self.find_or_create_by_provider_email(provider, email, additional = {})
     with_email = User.where(email: email)
     existing = with_email.find_by(provider: providers[provider]) ||
                with_email.last
