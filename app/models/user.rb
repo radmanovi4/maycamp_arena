@@ -4,6 +4,15 @@ require 'digest/sha1'
 class User < ActiveRecord::Base
   include Latinize
 
+  devise :omniauthable, :omniauth_providers => [:facebook]
+
+  SUPPORTED_PROVIDERS = [
+    :maycamp,
+    :facebook
+  ].freeze
+
+  enum provider: SUPPORTED_PROVIDERS
+
   validates_presence_of     :login
   validates_length_of       :login,    :within => 3..40
   validates_uniqueness_of   :login
@@ -14,10 +23,12 @@ class User < ActiveRecord::Base
   validates_presence_of     :email
   validates_length_of       :email,    :within => 6..100 #r@a.wk
 
-  validates_presence_of     :unencrypted_password, :on => :create
-  validates_confirmation_of :unencrypted_password
+  with_options unless: :facebook? do
+    validates_presence_of     :unencrypted_password, :on => :create
+    validates_confirmation_of :unencrypted_password
 
-  validates_presence_of :city
+    validates_presence_of :city
+  end
 
   attr_accessor :unencrypted_password
 
@@ -47,13 +58,45 @@ class User < ActiveRecord::Base
   # This will also let us return a human error message.
   #
   def self.authenticate(login, password)
-    user = find_by_login(login.downcase) || find_by_email(login.downcase) # need to get the salt
+    user = find_by_login(login.downcase) ||
+           User.maycamp.find_by_email(login.downcase) # need to get the salt
 
     if user and user.password == encrypt_password(password)
       return user
     end
 
     nil
+  end
+
+  def self.find_or_create_by_provider_email(provider, email, additional = {})
+    with_email = User.where(email: email)
+    existing = with_email.find_by(provider: providers[provider]) ||
+               with_email.last
+
+    return existing if existing
+
+    additional[:name] ||= email
+
+    create({
+      login: additional[:name], # TODO: Consider auto-changing `login` to avoid duplication
+      email: email,
+      provider: providers[provider]
+    }.merge(additional))
+  end
+
+  def self.from_external_provider_only(email)
+    externals = (SUPPORTED_PROVIDERS - [:maycamp]).map { |p| providers[p] }
+    users = User.where(email: email)
+
+    only_external_accounts = users.pluck(:provider).all? do |provider|
+      externals.include?(provider)
+    end
+
+    only_external_accounts ? users.first : nil
+  end
+
+  def self.maycamp
+    User.where(provider: [nil, providers[:maycamp]])
   end
 
   def admin?

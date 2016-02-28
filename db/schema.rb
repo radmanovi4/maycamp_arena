@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150710140609) do
+ActiveRecord::Schema.define(version: 20160217085514) do
 
   create_table "categories", force: :cascade do |t|
     t.string   "name",        limit: 255
@@ -176,15 +176,17 @@ ActiveRecord::Schema.define(version: 20150710140609) do
   add_index "user_preferences", ["user_id"], name: "index_user_preferences_on_user_id", using: :btree
 
   create_table "users", force: :cascade do |t|
-    t.string   "login",      limit: 40
-    t.string   "name",       limit: 100, default: ""
-    t.string   "email",      limit: 100
+    t.string   "login",       limit: 40
+    t.string   "name",        limit: 100, default: ""
+    t.string   "email",       limit: 100
     t.datetime "created_at"
     t.datetime "updated_at"
-    t.string   "password",   limit: 40,                        null: false
-    t.string   "city",       limit: 255
-    t.string   "token",      limit: 16
-    t.string   "role",       limit: 255, default: "contester", null: false
+    t.string   "password",    limit: 255
+    t.string   "city",        limit: 255
+    t.string   "token",       limit: 16
+    t.string   "role",        limit: 255, default: "contester", null: false
+    t.integer  "provider",    limit: 4,   default: 0
+    t.string   "provider_id", limit: 255
   end
 
   add_index "users", ["login"], name: "index_users_on_login", unique: true, using: :btree

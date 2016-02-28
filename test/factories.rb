@@ -9,6 +9,7 @@ FactoryGirl.define do
     u.role User::CONTESTER
     u.name "Valentin Mihov"
     u.city { BG_CITIES.first }
+    u.provider :maycamp
 
     User::ROLES.each do |role|
       trait role.to_sym do |u|
