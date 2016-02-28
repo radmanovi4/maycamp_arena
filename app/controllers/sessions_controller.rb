@@ -24,13 +24,16 @@ class SessionsController < ApplicationController
     response = request.env['omniauth.auth']
 
     if response.is_a?(Hash)
-      email = response.info.email
-      user = User.find_or_create_by_provider_email(:facebook,
-                                                   email,
-                                                   response.info.name,
-                                                   response.uid)
+      info = response.info
 
-      handle_login(user, email)
+      additional = {
+        name: info.name,
+        city: info.location ? info.location.split(',').first : 'неизвестен',
+        provider_id: response.uid
+      }
+
+      user = User.find_or_create_by_provider_email(:facebook, info.email, additional)
+      handle_login(user, info.email)
     else
       handle_provider_failure(:facebook)
     end

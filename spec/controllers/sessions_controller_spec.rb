@@ -48,7 +48,10 @@ describe SessionsController do
     end
 
     let(:successful_response_new) do
-      { provider: :facebook, info: { email: 'new@new.com', name: 'The New Guy' } }
+      {
+        provider: :facebook,
+        info: { email: 'new@new.com', name: 'The New Guy', location: 'Sofia, Bulgaria' }
+      }
     end
 
     let(:failure_response) { :error }
@@ -96,6 +99,10 @@ describe SessionsController do
 
       it 'fills new user\'s name correctly' do
         expect(User.last.name).to eq('The New Guy')
+      end
+
+      it 'fills new user\'s city correctly if given' do
+        expect(User.last.city).to eq('Sofia')
       end
 
       it 'fills new user\'s login correctly' do

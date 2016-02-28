@@ -68,22 +68,20 @@ class User < ActiveRecord::Base
     nil
   end
 
-  def self.find_or_create_by_provider_email(provider, email, name, provider_id)
+  def self.find_or_create_by_provider_email(provider, email, additional)
     with_email = User.where(email: email)
     existing = with_email.find_by(provider: providers[provider]) ||
                with_email.last
 
     return existing if existing
 
-    display_name = name || email
+    additional[:name] ||= email
 
-    create(
-      login: display_name, # TODO: Consider auto-changing `login` to avoid duplication
-      name: display_name,
+    create({
+      login: additional[:name], # TODO: Consider auto-changing `login` to avoid duplication
       email: email,
-      provider: providers[provider],
-      provider_id: provider_id.to_s
-    )
+      provider: providers[provider]
+    }.merge(additional))
   end
 
   def self.from_external_provider_only(email)
